@@ -1,0 +1,9 @@
+{
+  "domain": "uponor",
+  "name": "Uponor",
+  "documentation": "https://github.com/asev/homeassistant-uponor",
+  "dependencies": [],
+  "codeowners": ["@asev"],
+  "requirements": []
+}
+
