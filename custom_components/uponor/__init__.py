@@ -19,6 +19,16 @@ DEFAULT_NAME = "Uponor"
 SIGNAL_UPONOR_STATE_UPDATE = "uponor_state_update"
 SCAN_INTERVAL = timedelta(seconds=30)
 
+STATUS_OK = 'OK'
+STATUS_ERROR_BATTERY = 'Battery error'
+STATUS_ERROR_VALVE = 'Valve position error'
+STATUS_ERROR_GENERAL = 'General system error'
+STATUS_ERROR_AIR_SENSOR = 'Air sensor error'
+STATUS_ERROR_EXT_SENSOR = 'External sensor error'
+STATUS_ERROR_RH_SENSOR = 'Humidity sensor error'
+STATUS_ERROR_RF_SENSOR = 'RF sensor error'
+STATUS_ERROR_TAMPER = 'Tamper error'
+
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
@@ -42,6 +52,7 @@ async def async_setup(hass, config):
 
     hass.data[DOMAIN] = {"state_proxy": state_proxy, "name": name, "thermostats": thermostats}
 
+    hass.async_create_task(async_load_platform(hass, "sensor", DOMAIN, {}, config))
     hass.async_create_task(async_load_platform(hass, "climate", DOMAIN, {}, config))
 
     async_track_time_interval(hass, state_proxy.async_update, SCAN_INTERVAL)
@@ -82,6 +93,33 @@ class UponorStateProxy:
         var = 'C1_T' + str(thermostat) + '_rh'
         if var in self._data:
             return int(self._data[var])
+
+    def get_status(self, thermostat):
+        var = 'C1_T' + str(thermostat) + '_stat_battery_error'
+        if var in self._data and self._data[var] == "1":
+            return STATUS_ERROR_BATTERY
+        var = 'C1_T' + str(thermostat) + '_stat_valve_position_err"'
+        if var in self._data and self._data[var] == "1":
+            return STATUS_ERROR_VALVE
+        var = 'C1_stat_general_system_alarm'
+        if var in self._data and self._data[var] == "1":
+            return STATUS_ERROR_GENERAL
+        var = 'C1_T' + str(thermostat) + '_stat_air_sensor_error'
+        if var in self._data and self._data[var] == "1":
+            return STATUS_ERROR_AIR_SENSOR
+        var = 'C1_T' + str(thermostat) + '_stat_external_sensor_err'
+        if var in self._data and self._data[var] == "1":
+            return STATUS_ERROR_EXT_SENSOR
+        var = 'C1_T' + str(thermostat) + '_stat_rh_sensor_error'
+        if var in self._data and self._data[var] == "1":
+            return STATUS_ERROR_RH_SENSOR
+        var = 'C1_T' + str(thermostat) + '_stat_rf_error'
+        if var in self._data and self._data[var] == "1":
+            return STATUS_ERROR_RF_SENSOR
+        var = 'C1_T' + str(thermostat) + '_stat_tamper_alarm'
+        if var in self._data and self._data[var] == "1":
+            return STATUS_ERROR_TAMPER
+        return STATUS_OK
 
     def get_setpoint(self, thermostat):
         var = 'C1_T' + str(thermostat) + '_setpoint'
