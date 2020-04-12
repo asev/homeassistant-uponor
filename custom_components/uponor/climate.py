@@ -26,21 +26,24 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     entities = []
     for thermostat in hass.data[DOMAIN]["thermostats"]:
-        entities.append(UponorClimate(state_proxy, str(thermostat)))
+        tid = "t" + str(thermostat)
+        name = hass.data[DOMAIN]["names"][tid] if tid in hass.data[DOMAIN]["names"] else state_proxy.get_room_name(thermostat)
+        entities.append(UponorClimate(state_proxy, str(thermostat), name))
     if entities:
         async_add_entities(entities, update_before_add=False)
 
 class UponorClimate(ClimateDevice):
 
-    def __init__(self, state_proxy, thermostat):
+    def __init__(self, state_proxy, thermostat, name):
         self._state_proxy = state_proxy
         self._thermostat = thermostat
+        self._name = name
         self._is_on = True
         self._last_temp = 20
 
     @property
     def name(self):
-        return "Climate [T" + self._thermostat + "]"
+        return self._name
 
     @property
     def should_poll(self):

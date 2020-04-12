@@ -5,7 +5,7 @@ import requests
 import voluptuous as vol
 import logging
 
-from homeassistant.const import CONF_HOST, CONF_NAME
+from homeassistant.const import CONF_HOST
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.discovery import async_load_platform
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 DOMAIN = "uponor"
-DEFAULT_NAME = "Uponor"
+CONF_NAMES = "names"
 
 SIGNAL_UPONOR_STATE_UPDATE = "uponor_state_update"
 SCAN_INTERVAL = timedelta(seconds=30)
@@ -34,7 +34,7 @@ CONFIG_SCHEMA = vol.Schema(
         DOMAIN: vol.Schema(
             {
                 vol.Required(CONF_HOST): vol.All(ipaddress.ip_address, cv.string),
-                vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+                vol.Optional(CONF_NAMES, default={}): vol.All()
             }
         )
     },
@@ -44,13 +44,13 @@ CONFIG_SCHEMA = vol.Schema(
 async def async_setup(hass, config):
     conf = config[DOMAIN]
     host = conf.get(CONF_HOST)
-    name = conf.get(CONF_NAME)
+    names = conf.get(CONF_NAMES)
 
     state_proxy = UponorStateProxy(hass, host)
     await state_proxy.async_update(0)
     thermostats = state_proxy.get_active_thermostats()
 
-    hass.data[DOMAIN] = {"state_proxy": state_proxy, "name": name, "thermostats": thermostats}
+    hass.data[DOMAIN] = {"state_proxy": state_proxy, "names": names, "thermostats": thermostats}
 
     hass.async_create_task(async_load_platform(hass, "sensor", DOMAIN, {}, config))
     hass.async_create_task(async_load_platform(hass, "climate", DOMAIN, {}, config))
@@ -87,6 +87,11 @@ class UponorStateProxy:
         var = 'C1_T' + str(thermostat) + '_rh'
         if var in self._data:
             return int(self._data[var])
+
+    def get_room_name(self, thermostat):
+        var = 'cust_C1_T' + str(thermostat) + '_name'
+        if var in self._data:
+            return self._data[var]
 
     def get_status(self, thermostat):
         var = 'C1_T' + str(thermostat) + '_stat_battery_error'

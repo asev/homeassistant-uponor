@@ -21,6 +21,18 @@ uponor:
 4. Restart Home Assistant server
 5. For every thermostat separete entity `climate.climate_tX` will be created. X - thermostat number.
 
+## Configuration
+
+- `names` (optional) custom name for every thermostat. By default room names configured in Uponor mobile app are used.
+
+```yaml
+uponor:
+    host: IP_ADDRESS_OF_UPONOR_DEVICE
+    names:
+      t1: Living room
+      t2: Bedroom
+```
+
 ## Limitations
 
 Uponor API does not support simple way to turn it off. So when heating is turned off on Home assistant, it sets temperature to 7℃.
