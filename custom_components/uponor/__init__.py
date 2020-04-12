@@ -78,12 +78,6 @@ class UponorStateProxy:
         if var in self._data:
             return self._data[var] == "1"
 
-    def is_eco_mode_active(self, thermostat):
-        var = 'C1_T' + str(thermostat) + '_stat_cb_eco_forced'
-        var2 = 'C1_T' + str(thermostat) + '_stat_cb_comfort_eco_mode'
-        if var in self._data or var2 in self._data :
-            return self._data[var] == "1" or self._data[var2] == "1"
-
     def get_temperature(self, thermostat):
         var = 'C1_T' + str(thermostat) + '_room_temperature'
         if var in self._data:
