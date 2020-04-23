@@ -38,7 +38,7 @@ class UponorClimate(ClimateDevice):
         self._state_proxy = state_proxy
         self._thermostat = thermostat
         self._name = name
-        self._is_on = True
+        self._is_on = self._state_proxy.get_setpoint(self._thermostat) > 7
         self._last_temp = 20
 
     @property
@@ -56,7 +56,7 @@ class UponorClimate(ClimateDevice):
 
     @callback
     def _update_callback(self):
-        self.is_on = self._state_proxy.get_temperature(self._thermostat) > 7
+        self._is_on = self._state_proxy.get_setpoint(self._thermostat) > 7
         self.async_schedule_update_ha_state(True)
 
     @property
