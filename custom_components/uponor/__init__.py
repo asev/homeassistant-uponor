@@ -83,6 +83,16 @@ class UponorStateProxy:
         if var in self._data:
             return round((int(self._data[var]) - 320) / 18,1)
 
+    def get_min_limit(self, thermostat):
+        var = 'C1_T' + str(thermostat) + '_minimum_setpoint'
+        if var in self._data:
+            return round((int(self._data[var]) - 320) / 18,1)
+
+    def get_max_limit(self, thermostat):
+        var = 'C1_T' + str(thermostat) + '_maximum_setpoint'
+        if var in self._data:
+            return round((int(self._data[var]) - 320) / 18,1)
+
     def get_humidity(self, thermostat):
         var = 'C1_T' + str(thermostat) + '_rh'
         if var in self._data:

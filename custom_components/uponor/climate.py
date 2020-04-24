@@ -38,7 +38,7 @@ class UponorClimate(ClimateDevice):
         self._state_proxy = state_proxy
         self._thermostat = thermostat
         self._name = name
-        self._is_on = self._state_proxy.get_setpoint(self._thermostat) > 7
+        self._is_on = self._state_proxy.get_setpoint(self._thermostat) > self.min_temp
         self._last_temp = 20
 
     @property
@@ -56,7 +56,7 @@ class UponorClimate(ClimateDevice):
 
     @callback
     def _update_callback(self):
-        self._is_on = self._state_proxy.get_setpoint(self._thermostat) > 7
+        self._is_on = self._state_proxy.get_setpoint(self._thermostat) > self.min_temp
         self.async_schedule_update_ha_state(True)
 
     @property
@@ -82,7 +82,7 @@ class UponorClimate(ClimateDevice):
     def set_hvac_mode(self, hvac_mode):
         if hvac_mode == HVAC_MODE_OFF and self._is_on:
             self._last_temp = self.target_temperature
-            self._state_proxy.set_setpoint(self._thermostat, 7)
+            self._state_proxy.set_setpoint(self._thermostat, self.min_temp)
             self._is_on = False
         if hvac_mode == HVAC_MODE_HEAT and not self._is_on:
             self._state_proxy.set_setpoint(self._thermostat, self._last_temp)
@@ -103,6 +103,14 @@ class UponorClimate(ClimateDevice):
     @property
     def current_humidity(self):
         return self._state_proxy.get_humidity(self._thermostat)
+
+    @property
+    def min_temp(self):
+        return self._state_proxy.get_min_limit(self._thermostat)
+
+    @property
+    def max_temp(self):
+        return self._state_proxy.get_max_limit(self._thermostat)
 
     @property
     def target_temperature(self):
