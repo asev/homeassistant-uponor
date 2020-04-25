@@ -14,6 +14,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     thermostats = hass.data[DOMAIN]["thermostats"]
 
     entities = []
+    if hass.data[DOMAIN]["debug"]:
+        entities.append(UponorDebugSensor(state_proxy, thermostats))
     for thermostat in thermostats:
         if thermostat.lower() in hass.data[DOMAIN]["names"]:
             name = hass.data[DOMAIN]["names"][thermostat.lower()]
@@ -36,6 +38,36 @@ class UponorErrorSensor(Entity):
     @property
     def state(self):
         return self._state_proxy.get_status(self._thermostat)
+
+    @property
+    def should_poll(self):
+        return False
+
+    async def async_added_to_hass(self):
+        async_dispatcher_connect(
+            self.hass, SIGNAL_UPONOR_STATE_UPDATE, self._update_callback
+        )
+
+    @callback
+    def _update_callback(self):
+        self.async_schedule_update_ha_state(True)
+
+class UponorDebugSensor(Entity):
+    def __init__(self, state_proxy, thermostats):
+        self._state_proxy = state_proxy
+        self._thermostats = thermostats
+
+    @property
+    def name(self):
+        return "Uponor debug"
+
+    @property
+    def state(self):
+        return True
+
+    @property
+    def device_state_attributes(self):
+        return dict((t, self._state_proxy.get_room_name(t)) for t in self._thermostats)
 
     @property
     def should_poll(self):
