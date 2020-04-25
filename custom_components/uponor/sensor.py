@@ -11,12 +11,15 @@ from . import (
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     state_proxy = hass.data[DOMAIN]["state_proxy"]
+    thermostats = hass.data[DOMAIN]["thermostats"]
 
     entities = []
-    for thermostat in hass.data[DOMAIN]["thermostats"]:
-        tid = "t" + str(thermostat)
-        name = hass.data[DOMAIN]["names"][tid] if tid in hass.data[DOMAIN]["names"] else state_proxy.get_room_name(thermostat)
-        entities.append(UponorErrorSensor(state_proxy, str(thermostat), name))
+    for thermostat in thermostats:
+        if thermostat.lower() in hass.data[DOMAIN]["names"]:
+            name = hass.data[DOMAIN]["names"][thermostat.lower()]
+        else:
+            name = state_proxy.get_room_name(thermostat)
+        entities.append(UponorErrorSensor(state_proxy, thermostat, name))
     if entities:
         async_add_entities(entities, update_before_add=False)
 
