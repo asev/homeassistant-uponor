@@ -4,6 +4,6 @@
   "documentation": "https://github.com/asev/homeassistant-uponor",
   "dependencies": [],
   "codeowners": ["@asev"],
-  "requirements": []
+  "requirements": ["UponorJnap==0.1"]
 }
 

@@ -11,6 +11,7 @@ from homeassistant.helpers.discovery import async_load_platform
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from UponorJnap import UponorJnap
 
 _LOGGER = logging.getLogger(__name__)
 DOMAIN = "uponor"
@@ -48,7 +49,7 @@ async def async_setup(hass, config):
     host = conf.get(CONF_HOST)
     names = dict((k.lower(), v) for k,v in conf.get(CONF_NAMES).items())
 
-    state_proxy = UponorStateProxy(hass, host)
+    state_proxy = await hass.async_add_executor_job(lambda: UponorStateProxy(hass, host))
     await state_proxy.async_update(0)
     thermostats = state_proxy.get_active_thermostats()
 
@@ -69,7 +70,7 @@ async def async_setup(hass, config):
 class UponorStateProxy:
     def __init__(self, hass, host):
         self._hass = hass
-        self._host = host
+        self._client = UponorJnap(host)
         self._data = {}
 
     def get_active_thermostats(self):
@@ -149,25 +150,10 @@ class UponorStateProxy:
     def set_setpoint(self, thermostat, temp):
         var = thermostat + '_setpoint'
         setpoint = int(temp * 18 + 320)
-        self.send(var, setpoint)
+        self._client.send_data({var: setpoint})
         self._data[var] = setpoint
         async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
-    def send(self, var, value):
-        url = "http://" + self._host + "/JNAP/"
-        data = '{"vars": [{"waspVarName": "' + var + '","waspVarValue": "' + str(value) + '"}]}'
-        r = requests.post(url=url, headers={"x-jnap-action": "http://phyn.com/jnap/uponorsky/SetAttributes"}, data=data)
-        j = r.json()
-        if 'results' in j and not j['results'] == 'OK':
-            _LOGGER.error(j)
-
     async def async_update(self, event_time):
-        url = "http://" + self._host + "/JNAP/"
-        r = requests.post(url=url, headers={"x-jnap-action": "http://phyn.com/jnap/uponorsky/GetAttributes"}, data='{}')
-        j = r.json()
-        vars = {}
-        for v in j['output']['vars']:
-            vars[v['waspVarName']] = v['waspVarValue']
-        self._data = vars
-
+        self._data = await self._hass.async_add_executor_job(lambda: self._client.get_data())
         async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
