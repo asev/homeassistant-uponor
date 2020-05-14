@@ -11,8 +11,8 @@ Custom component for Home Assistant to connect Uponor Smatrix Pulse X-265 heatin
 
 ## Installation
 
-1. Startup and configure heating system on Uponor Smatrix mobile app. Make sure your can control heating via app.
-System has to be connected to local network and you should know it's IP address.
+1. Startup and configure heating system on Uponor Smatrix mobile app. Make sure you are able to control heating via the app.
+System has to be connected to the local network and you should know it's IP address.
 
 2. Copy the custom_components folder to your own Home Assistant /config folder.
 
@@ -29,8 +29,8 @@ Thermostat names can be changed in mobile app or via configuration.
 
 ## Configuration
 
-- `names` : map (optional) - custom name for every thermostat. `C1_T1` is thermostat id. Check state attributes of
-climate entity to find it's id. 
+- `names` : map (optional) - custom name for every thermostat. `C1_T1` is the thermostat id. Check state attributes of
+climate entity to find its id. 
 
 ```yaml
 uponor:
