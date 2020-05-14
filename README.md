@@ -29,13 +29,8 @@ Thermostat names can be changed in mobile app or via configuration.
 
 ## Configuration
 
-- `debug` : boolean (optional) - enables custom sensor to see active thermostat ids.
-Set it to true and check `sensor.uponor_debug` state attributes. It shows thermostat id and name from API.
-Use same id for `names` configuration option to have custom names.
-
-![Example of state attributes](debug.png)
-
-- `names` : map (optional) - custom name for every thermostat. `cX_tY` is thermostat id.
+- `names` : map (optional) - custom name for every thermostat. `C1_T1` is thermostat id. Check state attributes of
+climate entity to find it's id. 
 
 ```yaml
 uponor:

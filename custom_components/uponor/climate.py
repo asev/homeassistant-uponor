@@ -118,6 +118,10 @@ class UponorClimate(ClimateDevice):
     def target_temperature(self):
         return self._state_proxy.get_setpoint(self._thermostat)
 
+    @property
+    def device_state_attributes(self):
+        return {'id': self._thermostat}
+
     def set_temperature(self, **kwargs):
         temp = kwargs.get(ATTR_TEMPERATURE)
         if temp is not None and self._is_on:

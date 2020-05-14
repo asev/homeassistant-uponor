@@ -16,7 +16,6 @@ from UponorJnap import UponorJnap
 _LOGGER = logging.getLogger(__name__)
 DOMAIN = "uponor"
 CONF_NAMES = "names"
-CONF_DEBUG = "debug"
 
 SIGNAL_UPONOR_STATE_UPDATE = "uponor_state_update"
 SCAN_INTERVAL = timedelta(seconds=30)
@@ -39,8 +38,7 @@ CONFIG_SCHEMA = vol.Schema(
         DOMAIN: vol.Schema(
             {
                 vol.Required(CONF_HOST): vol.All(ipaddress.ip_address, cv.string),
-                vol.Optional(CONF_NAMES, default={}): vol.All(),
-                vol.Optional(CONF_DEBUG, default=False): cv.boolean
+                vol.Optional(CONF_NAMES, default={}): vol.All()
             }
         )
     },
@@ -59,8 +57,7 @@ async def async_setup(hass, config):
     hass.data[DOMAIN] = {
         "state_proxy": state_proxy,
         "names": names,
-        "thermostats": thermostats,
-        "debug": conf.get(CONF_DEBUG)
+        "thermostats": thermostats
     }
 
     hass.async_create_task(async_load_platform(hass, "sensor", DOMAIN, {}, config))
