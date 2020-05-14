@@ -30,6 +30,9 @@ STATUS_ERROR_EXT_SENSOR = 'External sensor error'
 STATUS_ERROR_RH_SENSOR = 'Humidity sensor error'
 STATUS_ERROR_RF_SENSOR = 'RF sensor error'
 STATUS_ERROR_TAMPER = 'Tamper error'
+STATUS_ERROR_TOO_HIGH_TEMP = 'API error'
+TOO_HIGH_TEMP_LIMIT = 4508
+TOO_LOW_HUMIDITY_LIMIT = 0
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -92,7 +95,7 @@ class UponorStateProxy:
 
     def get_temperature(self, thermostat):
         var = thermostat + '_room_temperature'
-        if var in self._data:
+        if var in self._data and int(self._data[var]) <= TOO_HIGH_TEMP_LIMIT:
             return round((int(self._data[var]) - 320) / 18,1)
 
     def get_min_limit(self, thermostat):
@@ -107,7 +110,7 @@ class UponorStateProxy:
 
     def get_humidity(self, thermostat):
         var = thermostat + '_rh'
-        if var in self._data:
+        if var in self._data and int(self._data[var]) >= TOO_LOW_HUMIDITY_LIMIT:
             return int(self._data[var])
 
     def get_room_name(self, thermostat):
@@ -140,6 +143,9 @@ class UponorStateProxy:
         var = thermostat + '_stat_tamper_alarm'
         if var in self._data and self._data[var] == "1":
             return STATUS_ERROR_TAMPER
+        var = thermostat + '_room_temperature'
+        if var in self._data and int(self._data[var]) > TOO_HIGH_TEMP_LIMIT:
+            return STATUS_ERROR_TOO_HIGH_TEMP
         return STATUS_OK
 
     def get_setpoint(self, thermostat):
