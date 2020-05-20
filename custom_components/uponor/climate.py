@@ -1,6 +1,6 @@
 import logging
 
-from homeassistant.components.climate import ClimateDevice
+from homeassistant.components.climate import ClimateEntity
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.components.climate.const import (
@@ -34,7 +34,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     if entities:
         async_add_entities(entities, update_before_add=False)
 
-class UponorClimate(ClimateDevice):
+class UponorClimate(ClimateEntity):
 
     def __init__(self, state_proxy, thermostat, name):
         self._state_proxy = state_proxy
