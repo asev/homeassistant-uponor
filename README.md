@@ -2,7 +2,7 @@
 
 [![Buy me a smoothie](https://img.shields.io/badge/Buy%20me%20a-smoothie-blue?style=for-the-badge&logo=PAYPAL)](https://www.paypal.me/asev)
 
-Custom component for Home Assistant to connect Uponor Smatrix Pulse X-265 heating system.
+Uponor Smatrix Pulse X-265 heating system integration for Home Assistant.
 
 ## Requirements
 
