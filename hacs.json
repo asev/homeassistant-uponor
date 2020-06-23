@@ -1,0 +1,5 @@
+{
+  "name": "Uponor Smatrix Pulse X-265 heating",
+  "iot_class": "Local Polling",
+  "render_readme": "True"
+}
