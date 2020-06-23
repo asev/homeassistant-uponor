@@ -60,7 +60,6 @@ async def async_setup(hass, config):
         "thermostats": thermostats
     }
 
-    hass.async_create_task(async_load_platform(hass, "sensor", DOMAIN, {}, config))
     hass.async_create_task(async_load_platform(hass, "climate", DOMAIN, {}, config))
 
     async_track_time_interval(hass, state_proxy.async_update, SCAN_INTERVAL)

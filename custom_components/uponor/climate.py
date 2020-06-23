@@ -120,7 +120,10 @@ class UponorClimate(ClimateEntity):
 
     @property
     def device_state_attributes(self):
-        return {'id': self._thermostat}
+        return {
+            'id': self._thermostat,
+            'status': self._state_proxy.get_status(self._thermostat)
+        }
 
     def set_temperature(self, **kwargs):
         temp = kwargs.get(ATTR_TEMPERATURE)
