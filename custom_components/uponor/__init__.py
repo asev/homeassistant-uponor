@@ -113,6 +113,8 @@ class UponorStateProxy:
         var = 'cust_' + thermostat + '_name'
         if var in self._data:
             return self._data[var]
+        
+        return thermostat
 
     def get_status(self, thermostat):
         var = thermostat + '_stat_battery_error'
