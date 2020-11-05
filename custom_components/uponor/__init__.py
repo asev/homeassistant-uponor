@@ -20,6 +20,9 @@ CONF_NAMES = "names"
 SIGNAL_UPONOR_STATE_UPDATE = "uponor_state_update"
 SCAN_INTERVAL = timedelta(seconds=30)
 
+STORAGE_KEY = "uponor_data"
+STORAGE_VERSION = 1
+
 STATUS_OK = 'OK'
 STATUS_ERROR_BATTERY = 'Battery error'
 STATUS_ERROR_VALVE = 'Valve position error'
@@ -49,8 +52,9 @@ async def async_setup(hass, config):
     conf = config[DOMAIN]
     host = conf.get(CONF_HOST)
     names = dict((k.lower(), v) for k,v in conf.get(CONF_NAMES).items())
+    store = hass.helpers.storage.Store(STORAGE_VERSION, STORAGE_KEY)
 
-    state_proxy = await hass.async_add_executor_job(lambda: UponorStateProxy(hass, host))
+    state_proxy = await hass.async_add_executor_job(lambda: UponorStateProxy(hass, host, store))
     await state_proxy.async_update(0)
     thermostats = state_proxy.get_active_thermostats()
 
@@ -67,10 +71,12 @@ async def async_setup(hass, config):
     return True
 
 class UponorStateProxy:
-    def __init__(self, hass, host):
+    def __init__(self, hass, host, store):
         self._hass = hass
         self._client = UponorJnap(host)
+        self._store = store
         self._data = {}
+        self._storage_data = {}
 
     def get_active_thermostats(self):
         active = []
@@ -157,6 +163,19 @@ class UponorStateProxy:
         self._client.send_data({var: setpoint})
         self._data[var] = setpoint
         async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
+
+    async def async_turn_on(self, thermostat):
+        data = await self._store.async_load()
+        self._storage_data = {} if data is None else data
+        last_temp = self._storage_data[thermostat] if thermostat in self._storage_data else 20
+        self.set_setpoint(thermostat, last_temp)
+
+    async def async_turn_off(self, thermostat):
+        data = await self._store.async_load()
+        self._storage_data = {} if data is None else data
+        self._storage_data[thermostat] = self.get_setpoint(thermostat)
+        await self._store.async_save(self._storage_data)
+        self.set_setpoint(thermostat, self.get_min_limit(thermostat))
 
     async def async_update(self, event_time):
         self._data = await self._hass.async_add_executor_job(lambda: self._client.get_data())

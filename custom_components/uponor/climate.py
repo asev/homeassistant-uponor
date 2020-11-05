@@ -41,7 +41,6 @@ class UponorClimate(ClimateEntity):
         self._thermostat = thermostat
         self._name = name
         self._is_on = self._state_proxy.get_setpoint(self._thermostat) > self.min_temp
-        self._last_temp = 20
 
     @property
     def name(self):
@@ -81,13 +80,12 @@ class UponorClimate(ClimateEntity):
             return HVAC_MODE_HEAT
         return HVAC_MODE_OFF
 
-    def set_hvac_mode(self, hvac_mode):
+    async def async_set_hvac_mode(self, hvac_mode):
         if hvac_mode == HVAC_MODE_OFF and self._is_on:
-            self._last_temp = self.target_temperature
-            self._state_proxy.set_setpoint(self._thermostat, self.min_temp)
+            await self._state_proxy.async_turn_off(self._thermostat)
             self._is_on = False
         if hvac_mode == HVAC_MODE_HEAT and not self._is_on:
-            self._state_proxy.set_setpoint(self._thermostat, self._last_temp)
+            await self._state_proxy.async_turn_on(self._thermostat)
             self._is_on = True
 
     @property
