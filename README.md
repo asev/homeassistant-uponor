@@ -2,12 +2,12 @@
 
 [![Buy me a smoothie](https://img.shields.io/badge/Buy%20me%20a-smoothie-blue?style=for-the-badge&logo=PAYPAL)](https://www.paypal.me/asev)
 
-Uponor Smatrix Pulse X-265 heating system integration for Home Assistant.
+Uponor Smatrix Pulse heating system integration for Home Assistant.
 
-## Requirements
+## Supported devices
 
-1. Uponor Smatrix Pulse controller X-265
-2. Uponor Smatrix Pulse communication module R-208
+This integration communicates with Uponor Smatrix Pulse communication module R-208.
+It should work with all controllers that support this module.
 
 ## Installation
 
