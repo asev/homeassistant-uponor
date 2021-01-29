@@ -79,6 +79,8 @@ class UponorStateProxy:
         self._data = {}
         self._storage_data = {}
 
+    # Thermostats config
+
     def get_active_thermostats(self):
         active = []
         for c in range(1, 5):
@@ -91,10 +93,14 @@ class UponorStateProxy:
                     active.append('C' + str(c) + '_T' + str(i))
         return active
 
-    def is_heating_active(self, thermostat):
-        var = thermostat + '_stat_cb_actuator'
+    def get_room_name(self, thermostat):
+        var = 'cust_' + thermostat + '_name'
         if var in self._data:
-            return self._data[var] == "1"
+            return self._data[var]
+
+        return thermostat
+
+    # Temperatures & humidity
 
     def get_temperature(self, thermostat):
         var = thermostat + '_room_temperature'
@@ -116,12 +122,26 @@ class UponorStateProxy:
         if var in self._data and int(self._data[var]) >= TOO_LOW_HUMIDITY_LIMIT:
             return int(self._data[var])
 
-    def get_room_name(self, thermostat):
-        var = 'cust_' + thermostat + '_name'
+    # Temperature setpoint
+
+    def get_setpoint(self, thermostat):
+        var = thermostat + '_setpoint'
         if var in self._data:
-            return self._data[var]
-        
-        return thermostat
+            return math.floor((int(self._data[var]) - 320) / 1.8) /10
+
+    def set_setpoint(self, thermostat, temp):
+        var = thermostat + '_setpoint'
+        setpoint = int(temp * 18 + 320)
+        self._client.send_data({var: setpoint})
+        self._data[var] = setpoint
+        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
+
+    # State
+
+    def is_heating_active(self, thermostat):
+        var = thermostat + '_stat_cb_actuator'
+        if var in self._data:
+            return self._data[var] == "1"
 
     def get_status(self, thermostat):
         var = thermostat + '_stat_battery_error'
@@ -153,28 +173,7 @@ class UponorStateProxy:
             return STATUS_ERROR_TOO_HIGH_TEMP
         return STATUS_OK
 
-    def is_away(self):
-        var = 'sys_forced_eco_mode'
-        return var in self._data and self._data[var] == "1"
-
-    async def async_set_away(self, is_away):
-        var = 'sys_forced_eco_mode'
-        data = "1" if is_away else "0"
-        await self._hass.async_add_executor_job(lambda: self._client.send_data({var: data}))
-        self._data[var] = data
-        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
-
-    def get_setpoint(self, thermostat):
-        var = thermostat + '_setpoint'
-        if var in self._data:
-            return math.floor((int(self._data[var]) - 320) / 1.8) /10
-
-    def set_setpoint(self, thermostat, temp):
-        var = thermostat + '_setpoint'
-        setpoint = int(temp * 18 + 320)
-        self._client.send_data({var: setpoint})
-        self._data[var] = setpoint
-        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
+    # HVAC modes
 
     async def async_turn_on(self, thermostat):
         data = await self._store.async_load()
@@ -188,6 +187,21 @@ class UponorStateProxy:
         self._storage_data[thermostat] = self.get_setpoint(thermostat)
         await self._store.async_save(self._storage_data)
         await self._hass.async_add_executor_job(lambda: self.set_setpoint(thermostat, self.get_min_limit(thermostat)))
+
+    # Away mode
+
+    def is_away(self):
+        var = 'sys_forced_eco_mode'
+        return var in self._data and self._data[var] == "1"
+
+    async def async_set_away(self, is_away):
+        var = 'sys_forced_eco_mode'
+        data = "1" if is_away else "0"
+        await self._hass.async_add_executor_job(lambda: self._client.send_data({var: data}))
+        self._data[var] = data
+        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
+
+    # Rest
 
     async def async_update(self, event_time):
         self._data = await self._hass.async_add_executor_job(lambda: self._client.get_data())
