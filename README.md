@@ -6,17 +6,18 @@ Uponor Smatrix Pulse heating system integration for Home Assistant.
 
 ## Supported devices
 
-This integration communicates with Uponor Smatrix Pulse communication module R-208.
+This integration co
+mmunicates with Uponor Smatrix Pulse communication module R-208.
 It should work with all controllers that support this module.
 
 ## Installation
 
-1. Startup and configure heating system on Uponor Smatrix mobile app. Make sure you are able to control heating via the app.
+1. Startup and configure your system on Uponor Smatrix mobile app. Make sure you are able to control heating via the app.
 System has to be connected to the local network and you should know it's IP address.
 
-2. Copy the custom_components folder to your own Home Assistant /config folder.
+2. Install "Uponor Smatrix Pulse" integration on HACS
 
-OR add https://github.com/asev/homeassistant-uponor as _Custom repository_ in HACS with _Integration_ category.
+OR copy the custom_components folder to your own Home Assistant /config folder.
 
 3. Enable the component by adding the following in your `configuration.yml`:
 ```yaml
@@ -42,8 +43,13 @@ uponor:
 
 ## Limitations
 
-Uponor API does not support turn off action. When heating is turned off on Home Assistant,
+This integration supports heating only.
+
+Uponor API does not support turn off action. When climate entity is turned off on Home Assistant,
 the temperature is set to minimum (by default 5℃).
+
+## Older module
+In case you have older Uponor X-165 module visit: https://github.com/dave-code-ruiz/uhomeuponor
 
 ## Feedback
 
