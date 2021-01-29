@@ -65,6 +65,7 @@ async def async_setup(hass, config):
     }
 
     hass.async_create_task(async_load_platform(hass, "climate", DOMAIN, {}, config))
+    hass.async_create_task(async_load_platform(hass, "switch", DOMAIN, {}, config))
 
     async_track_time_interval(hass, state_proxy.async_update, SCAN_INTERVAL)
 
@@ -151,6 +152,17 @@ class UponorStateProxy:
         if var in self._data and int(self._data[var]) > TOO_HIGH_TEMP_LIMIT:
             return STATUS_ERROR_TOO_HIGH_TEMP
         return STATUS_OK
+
+    def is_away(self):
+        var = 'sys_forced_eco_mode'
+        return var in self._data and self._data[var] == "1"
+
+    async def async_set_away(self, is_away):
+        var = 'sys_forced_eco_mode'
+        data = "1" if is_away else "0"
+        await self._hass.async_add_executor_job(lambda: self._client.send_data({var: data}))
+        self._data[var] = data
+        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     def get_setpoint(self, thermostat):
         var = thermostat + '_setpoint'

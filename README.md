@@ -6,8 +6,7 @@ Uponor Smatrix Pulse heating system integration for Home Assistant.
 
 ## Supported devices
 
-This integration co
-mmunicates with Uponor Smatrix Pulse communication module R-208.
+This integration communicates with Uponor Smatrix Pulse communication module R-208.
 It should work with all controllers that support this module.
 
 ## Installation
@@ -25,8 +24,13 @@ uponor:
     host: IP_ADDRESS_OF_UPONOR_DEVICE
 ```
 4. Restart Home Assistant server
-5. For every thermostat separate entity `climate.THERMOSTAT_NAME` will be created.
-Thermostat names can be changed in mobile app or via configuration. 
+   
+## Structure
+
+Separate entity `climate.THERMOSTAT_NAME` will be created for every thermostat.
+Thermostat names can be changed in Uponor Smatrix app or via configuration.
+
+`switch.uponor_away` controls away mode. It activates ECO mode for all thermostat.
 
 ## Configuration
 
