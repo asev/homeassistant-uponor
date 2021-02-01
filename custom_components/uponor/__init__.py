@@ -48,10 +48,11 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+
 async def async_setup(hass, config):
     conf = config[DOMAIN]
     host = conf.get(CONF_HOST)
-    names = dict((k.lower(), v) for k,v in conf.get(CONF_NAMES).items())
+    names = dict((k.lower(), v) for k, v in conf.get(CONF_NAMES).items())
     store = hass.helpers.storage.Store(STORAGE_VERSION, STORAGE_KEY)
 
     state_proxy = await hass.async_add_executor_job(lambda: UponorStateProxy(hass, host, store))
@@ -70,6 +71,7 @@ async def async_setup(hass, config):
     async_track_time_interval(hass, state_proxy.async_update, SCAN_INTERVAL)
 
     return True
+
 
 class UponorStateProxy:
     def __init__(self, hass, host, store):
@@ -105,17 +107,17 @@ class UponorStateProxy:
     def get_temperature(self, thermostat):
         var = thermostat + '_room_temperature'
         if var in self._data and int(self._data[var]) <= TOO_HIGH_TEMP_LIMIT:
-            return round((int(self._data[var]) - 320) / 18,1)
+            return round((int(self._data[var]) - 320) / 18, 1)
 
     def get_min_limit(self, thermostat):
         var = thermostat + '_minimum_setpoint'
         if var in self._data:
-            return round((int(self._data[var]) - 320) / 18,1)
+            return round((int(self._data[var]) - 320) / 18, 1)
 
     def get_max_limit(self, thermostat):
         var = thermostat + '_maximum_setpoint'
         if var in self._data:
-            return round((int(self._data[var]) - 320) / 18,1)
+            return round((int(self._data[var]) - 320) / 18, 1)
 
     def get_humidity(self, thermostat):
         var = thermostat + '_rh'
@@ -127,7 +129,7 @@ class UponorStateProxy:
     def get_setpoint(self, thermostat):
         var = thermostat + '_setpoint'
         if var in self._data:
-            return math.floor((int(self._data[var]) - 320) / 1.8) /10
+            return math.floor((int(self._data[var]) - 320) / 1.8) / 10
 
     def set_setpoint(self, thermostat, temp):
         var = thermostat + '_setpoint'
@@ -138,7 +140,7 @@ class UponorStateProxy:
 
     # State
 
-    def is_heating_active(self, thermostat):
+    def is_active(self, thermostat):
         var = thermostat + '_stat_cb_actuator'
         if var in self._data:
             return self._data[var] == "1"
@@ -175,6 +177,24 @@ class UponorStateProxy:
 
     # HVAC modes
 
+    async def async_switch_to_cooling(self):
+        for thermostat in self._hass.data[DOMAIN]['thermostats']:
+            if self.get_setpoint(thermostat) == self.get_min_limit(thermostat):
+                await self._hass.async_add_executor_job(lambda: self.set_setpoint(thermostat, self.get_max_limit(thermostat)))
+
+        await self._hass.async_add_executor_job(lambda: self._client.send_data({'sys_heat_cool_mode': '1'}))
+        self._data['sys_heat_cool_mode'] = '1'
+        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
+
+    async def async_switch_to_heating(self):
+        for thermostat in self._hass.data[DOMAIN]['thermostats']:
+            if self.get_setpoint(thermostat) == self.get_max_limit(thermostat):
+                await self._hass.async_add_executor_job(lambda: self.set_setpoint(thermostat, self.get_min_limit(thermostat)))
+
+        await self._hass.async_add_executor_job(lambda: self._client.send_data({'sys_heat_cool_mode': '0'}))
+        self._data['sys_heat_cool_mode'] = '0'
+        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
+
     async def async_turn_on(self, thermostat):
         data = await self._store.async_load()
         self._storage_data = {} if data is None else data
@@ -186,7 +206,20 @@ class UponorStateProxy:
         self._storage_data = {} if data is None else data
         self._storage_data[thermostat] = self.get_setpoint(thermostat)
         await self._store.async_save(self._storage_data)
-        await self._hass.async_add_executor_job(lambda: self.set_setpoint(thermostat, self.get_min_limit(thermostat)))
+        off_temp = self.get_max_limit(thermostat) if self.is_cool_enabled() else self.get_min_limit(thermostat)
+        await self._hass.async_add_executor_job(lambda: self.set_setpoint(thermostat, off_temp))
+
+    # Cooling
+
+    def is_cool_available(self):
+        var = 'sys_cooling_available'
+        if var in self._data:
+            return self._data[var] == "1"
+
+    def is_cool_enabled(self):
+        var = 'sys_heat_cool_mode'
+        if var in self._data:
+            return self._data[var] == "1"
 
     # Away mode
 
