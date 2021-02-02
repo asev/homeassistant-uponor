@@ -32,7 +32,7 @@ Thermostat names can be changed in Uponor Smatrix app or via configuration.
 
 `switch.uponor_away` controls away mode. It activates ECO mode for all thermostat.
 
-`switch.uponor_cooling_mode` activates cooling when switched on and heating mode when it's switched off.
+`switch.uponor_cooling_mode` activates cooling mode when switched on and heating mode when it's switched off.
 This switch will be added only if cooling is available in your system.
 
 ## Configuration

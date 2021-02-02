@@ -11,7 +11,12 @@ from homeassistant.components.climate.const import (
     CURRENT_HVAC_HEAT,
     CURRENT_HVAC_COOL,
     CURRENT_HVAC_IDLE,
+    PRESET_AWAY,
+    PRESET_COMFORT,
+    PRESET_ECO,
     SUPPORT_TARGET_TEMPERATURE,
+    SUPPORT_PRESET_MODE
+
 )
 from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS
 
@@ -69,7 +74,7 @@ class UponorClimate(ClimateEntity):
     @property
     def supported_features(self):
         if self._is_on:
-            return SUPPORT_TARGET_TEMPERATURE
+            return SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
         return 0
 
     @property
@@ -101,6 +106,18 @@ class UponorClimate(ClimateEntity):
         if self._state_proxy.is_cool_enabled():
             return [HVAC_MODE_COOL, HVAC_MODE_OFF]
         return [HVAC_MODE_HEAT, HVAC_MODE_OFF]
+
+    @property
+    def preset_mode(self):
+        if self._state_proxy.is_eco(self._thermostat):
+            return PRESET_ECO
+        if self._state_proxy.is_away():
+            return PRESET_AWAY
+        return PRESET_COMFORT
+
+    @property
+    def preset_modes(self):
+        return [self.preset_mode]
 
     @property
     def temperature_unit(self):
