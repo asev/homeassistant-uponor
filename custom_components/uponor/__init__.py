@@ -127,26 +127,34 @@ class UponorStateProxy:
     # Temperature setpoint
 
     def get_setpoint(self, thermostat):
-        setback = 0
-        var_setback = thermostat + '_eco_offset'
-        if var_setback in self._data and (self.is_eco(thermostat) or self.is_away()):
-            setback = int(self._data[var_setback])
-
         var = thermostat + '_setpoint'
         if var in self._data:
-            return math.floor((int(self._data[var]) - setback - 320) / 1.8) / 10
+            temp = math.floor((int(self._data[var]) - 320) / 1.8) / 10
+            return math.floor((int(self._data[var]) - self.get_setback(thermostat, temp) - 320) / 1.8) / 10
 
     def set_setpoint(self, thermostat, temp):
-        setback = 0
-        var_setback = thermostat + '_eco_offset'
-        if var_setback in self._data and (self.is_eco(thermostat) or self.is_away()):
-            setback = int(self._data[var_setback])
-
         var = thermostat + '_setpoint'
-        setpoint = int(temp * 18 + setback + 320)
+        setpoint = int(temp * 18 + self.get_setback(thermostat, temp) + 320)
         self._client.send_data({var: setpoint})
         self._data[var] = setpoint
         async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
+
+    def get_setback(self, thermostat, temp):
+        if temp == self.get_min_limit(thermostat) or temp == self.get_max_limit(thermostat):
+            return 0
+
+        cool_setback = 0
+        var_cool_setback = 'sys_heat_cool_offset'
+        if var_cool_setback in self._data and self.is_cool_enabled():
+            cool_setback = int(self._data[var_cool_setback]) * -1
+
+        eco_setback = 0
+        var_eco_setback = thermostat + '_eco_offset'
+        mode = -1 if self.is_cool_enabled() else 1
+        if var_eco_setback in self._data and (self.is_eco(thermostat) or self.is_away()):
+            eco_setback = int(self._data[var_eco_setback]) * mode
+
+        return cool_setback + eco_setback
 
     # State
 
@@ -190,7 +198,8 @@ class UponorStateProxy:
     async def async_switch_to_cooling(self):
         for thermostat in self._hass.data[DOMAIN]['thermostats']:
             if self.get_setpoint(thermostat) == self.get_min_limit(thermostat):
-                await self._hass.async_add_executor_job(lambda: self.set_setpoint(thermostat, self.get_max_limit(thermostat)))
+                await self._hass.async_add_executor_job(
+                    lambda: self.set_setpoint(thermostat, self.get_max_limit(thermostat)))
 
         await self._hass.async_add_executor_job(lambda: self._client.send_data({'sys_heat_cool_mode': '1'}))
         self._data['sys_heat_cool_mode'] = '1'
@@ -199,7 +208,8 @@ class UponorStateProxy:
     async def async_switch_to_heating(self):
         for thermostat in self._hass.data[DOMAIN]['thermostats']:
             if self.get_setpoint(thermostat) == self.get_max_limit(thermostat):
-                await self._hass.async_add_executor_job(lambda: self.set_setpoint(thermostat, self.get_min_limit(thermostat)))
+                await self._hass.async_add_executor_job(
+                    lambda: self.set_setpoint(thermostat, self.get_min_limit(thermostat)))
 
         await self._hass.async_add_executor_job(lambda: self._client.send_data({'sys_heat_cool_mode': '0'}))
         self._data['sys_heat_cool_mode'] = '0'
@@ -247,7 +257,8 @@ class UponorStateProxy:
     def is_eco(self, thermostat):
         var = thermostat + '_stat_cb_comfort_eco_mode'
         var_temp = 'cust_Temporary_ECO_Activation'
-        return (var in self._data and self._data[var] == "1") or (var_temp in self._data and self._data[var_temp] == "1")
+        return (var in self._data and self._data[var] == "1") or (
+                    var_temp in self._data and self._data[var_temp] == "1")
 
     # Rest
 
