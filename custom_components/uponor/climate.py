@@ -113,11 +113,11 @@ class UponorClimate(ClimateEntity):
             return PRESET_ECO
         if self._state_proxy.is_away():
             return PRESET_AWAY
-        return PRESET_COMFORT
+        return None
 
     @property
     def preset_modes(self):
-        return [self.preset_mode]
+        return [self.preset_mode] if self.preset_mode is not None else []
 
     @property
     def temperature_unit(self):

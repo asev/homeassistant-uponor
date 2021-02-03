@@ -35,6 +35,14 @@ Thermostat names can be changed in Uponor Smatrix app or via configuration.
 `switch.uponor_cooling_mode` activates cooling mode when switched on and heating mode when it's switched off.
 This switch will be added only if cooling is available in your system.
 
+### Climate entity
+
+Climate entity has read-only preset. Two presets are available:
+* ECO - activated when scheduled ECO profile is on OR if Temporary ECO mode activated on the mobile app.
+* Away - activated when `switch.uponor_away` is on.
+
+If none of those are true, then preset is empty.
+
 ## Configuration
 
 - `names` : map (optional) - custom name for every thermostat. `C1_T1` is the thermostat id. Check state attributes of
