@@ -38,7 +38,7 @@ This switch will be added only if cooling is available in your system.
 ### Climate entity
 
 Climate entity has read-only preset. Two presets are available:
-* ECO - activated when scheduled ECO profile is on OR if Temporary ECO mode activated on the mobile app.
+* ECO - activated when scheduled ECO profile is on OR Temporary ECO mode activated on the mobile app.
 * Away - activated when `switch.uponor_away` is on.
 
 If none of those are true, then preset is empty.
