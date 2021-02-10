@@ -21,23 +21,23 @@ from .const import (
     SIGNAL_UPONOR_STATE_UPDATE,
     SCAN_INTERVAL,
     STORAGE_KEY,
-    STORAGE_VERSION
+    STORAGE_VERSION,
+    STATUS_OK,
+    STATUS_ERROR_BATTERY,
+    STATUS_ERROR_VALVE,
+    STATUS_ERROR_GENERAL,
+    STATUS_ERROR_AIR_SENSOR,
+    STATUS_ERROR_EXT_SENSOR,
+    STATUS_ERROR_RH_SENSOR,
+    STATUS_ERROR_RF_SENSOR,
+    STATUS_ERROR_TAMPER,
+    STATUS_ERROR_TOO_HIGH_TEMP,
+    TOO_HIGH_TEMP_LIMIT,
+    TOO_LOW_HUMIDITY_LIMIT,
+    DEFAULT_TEMP
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-STATUS_OK = 'OK'
-STATUS_ERROR_BATTERY = 'Battery error'
-STATUS_ERROR_VALVE = 'Valve position error'
-STATUS_ERROR_GENERAL = 'General system error'
-STATUS_ERROR_AIR_SENSOR = 'Air sensor error'
-STATUS_ERROR_EXT_SENSOR = 'External sensor error'
-STATUS_ERROR_RH_SENSOR = 'Humidity sensor error'
-STATUS_ERROR_RF_SENSOR = 'RF sensor error'
-STATUS_ERROR_TAMPER = 'Tamper error'
-STATUS_ERROR_TOO_HIGH_TEMP = 'API error'
-TOO_HIGH_TEMP_LIMIT = 4508
-TOO_LOW_HUMIDITY_LIMIT = 0
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -232,7 +232,7 @@ class UponorStateProxy:
     async def async_turn_on(self, thermostat):
         data = await self._store.async_load()
         self._storage_data = {} if data is None else data
-        last_temp = self._storage_data[thermostat] if thermostat in self._storage_data else 20
+        last_temp = self._storage_data[thermostat] if thermostat in self._storage_data else DEFAULT_TEMP
         await self._hass.async_add_executor_job(lambda: self.set_setpoint(thermostat, last_temp))
 
     async def async_turn_off(self, thermostat):
