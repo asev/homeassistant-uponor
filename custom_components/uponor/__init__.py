@@ -5,6 +5,9 @@ import requests
 import voluptuous as vol
 import logging
 
+from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
+
 from homeassistant.const import CONF_HOST
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.discovery import async_load_platform
@@ -13,15 +16,15 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from UponorJnap import UponorJnap
 
+from .const import (
+    DOMAIN,
+    SIGNAL_UPONOR_STATE_UPDATE,
+    SCAN_INTERVAL,
+    STORAGE_KEY,
+    STORAGE_VERSION
+)
+
 _LOGGER = logging.getLogger(__name__)
-DOMAIN = "uponor"
-CONF_NAMES = "names"
-
-SIGNAL_UPONOR_STATE_UPDATE = "uponor_state_update"
-SCAN_INTERVAL = timedelta(seconds=30)
-
-STORAGE_KEY = "uponor_data"
-STORAGE_VERSION = 1
 
 STATUS_OK = 'OK'
 STATUS_ERROR_BATTERY = 'Battery error'
@@ -36,23 +39,15 @@ STATUS_ERROR_TOO_HIGH_TEMP = 'API error'
 TOO_HIGH_TEMP_LIMIT = 4508
 TOO_LOW_HUMIDITY_LIMIT = 0
 
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_HOST): vol.All(ipaddress.ip_address, cv.string),
-                vol.Optional(CONF_NAMES, default={}): vol.All()
-            }
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
+
+async def async_setup(hass: HomeAssistant, config: dict):
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN]["config"] = config.get(DOMAIN) or {}
+    return True
 
 
-async def async_setup(hass, config):
-    conf = config[DOMAIN]
-    host = conf.get(CONF_HOST)
-    names = dict((k.lower(), v) for k, v in conf.get(CONF_NAMES).items())
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
+    host = config_entry.data[CONF_HOST]
     store = hass.helpers.storage.Store(STORAGE_VERSION, STORAGE_KEY)
 
     state_proxy = await hass.async_add_executor_job(lambda: UponorStateProxy(hass, host, store))
@@ -61,12 +56,11 @@ async def async_setup(hass, config):
 
     hass.data[DOMAIN] = {
         "state_proxy": state_proxy,
-        "names": names,
         "thermostats": thermostats
     }
 
-    hass.async_create_task(async_load_platform(hass, "climate", DOMAIN, {}, config))
-    hass.async_create_task(async_load_platform(hass, "switch", DOMAIN, {}, config))
+    hass.async_create_task(hass.config_entries.async_forward_entry_setup(config_entry, "climate"))
+    hass.async_create_task(hass.config_entries.async_forward_entry_setup(config_entry, "switch"))
 
     async_track_time_interval(hass, state_proxy.async_update, SCAN_INTERVAL)
 
@@ -99,8 +93,23 @@ class UponorStateProxy:
         var = 'cust_' + thermostat + '_name'
         if var in self._data:
             return self._data[var]
-
         return thermostat
+
+    def get_thermostat_id(self, thermostat):
+        var = thermostat.replace('T', 'thermostat') + '_id'
+        if var in self._data:
+            return self._data[var]
+
+    def get_model(self):
+        var = 'cust_SW_version_update'
+        if var in self._data:
+            return self._data[var].split('_')[0]
+        return '-'
+
+    def get_version(self, thermostat):
+        var = thermostat[0:3] + 'sw_version'
+        if var in self._data:
+            return self._data[var].split('_')[0]
 
     # Temperatures & humidity
 
@@ -162,6 +171,11 @@ class UponorStateProxy:
         var = thermostat + '_stat_cb_actuator'
         if var in self._data:
             return self._data[var] == "1"
+
+    def get_pwm(self, thermostat):
+        var = thermostat + '_ufh_pwm_output'
+        if var in self._data:
+            return int(self._data[var])
 
     def get_status(self, thermostat):
         var = thermostat + '_stat_battery_error'

@@ -3,6 +3,12 @@ import logging
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+
+from homeassistant.const import (
+    ATTR_TEMPERATURE,
+    TEMP_CELSIUS
+)
+
 from homeassistant.components.climate.const import (
     HVAC_MODE_HEAT,
     HVAC_MODE_COOL,
@@ -12,28 +18,27 @@ from homeassistant.components.climate.const import (
     CURRENT_HVAC_COOL,
     CURRENT_HVAC_IDLE,
     PRESET_AWAY,
-    PRESET_COMFORT,
     PRESET_ECO,
     SUPPORT_TARGET_TEMPERATURE,
     SUPPORT_PRESET_MODE
-
 )
-from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS
 
-from . import (
+from .const import (
     DOMAIN,
-    SIGNAL_UPONOR_STATE_UPDATE
+    SIGNAL_UPONOR_STATE_UPDATE,
+    DEVICE_MANUFACTURER
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+
+async def async_setup_entry(hass, entry, async_add_entities):
     state_proxy = hass.data[DOMAIN]["state_proxy"]
 
     entities = []
     for thermostat in hass.data[DOMAIN]["thermostats"]:
-        if thermostat.lower() in hass.data[DOMAIN]["names"]:
-            name = hass.data[DOMAIN]["names"][thermostat.lower()]
+        if thermostat.lower() in entry.data:
+            name = entry.data[thermostat.lower()]
         else:
             name = state_proxy.get_room_name(thermostat)
         entities.append(UponorClimate(state_proxy, thermostat, name))
@@ -147,7 +152,22 @@ class UponorClimate(ClimateEntity):
     def device_state_attributes(self):
         return {
             'id': self._thermostat,
-            'status': self._state_proxy.get_status(self._thermostat)
+            'status': self._state_proxy.get_status(self._thermostat),
+            'pulse_width_modulation': self._state_proxy.get_pwm(self._thermostat),
+        }
+
+    @property
+    def unique_id(self):
+        return self._state_proxy.get_thermostat_id(self._thermostat)
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {(DOMAIN, self._state_proxy.get_thermostat_id(self._thermostat))},
+            "name": self._name,
+            "manufacturer": DEVICE_MANUFACTURER,
+            "model": self._state_proxy.get_model(),
+            "sw_version": self._state_proxy.get_version(self._thermostat)
         }
 
     def set_temperature(self, **kwargs):

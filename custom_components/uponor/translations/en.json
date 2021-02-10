@@ -1,0 +1,75 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Uponor",
+        "description": "Set up Uponor heating/cooling system",
+        "data": {
+          "host": "Host or IP address of the Uponor controller",
+          "name": "Name of the integration instance"
+        }
+      },
+      "rooms": {
+        "title": "Uponor Thermostats",
+        "description": "Assign names for Uponor thermostats",
+        "data": {
+          "c1_t1": "Name of C1 Thermostat 1",
+          "c1_t2": "Name of C1 Thermostat 2",
+          "c1_t3": "Name of C1 Thermostat 3",
+          "c1_t4": "Name of C1 Thermostat 4",
+          "c1_t5": "Name of C1 Thermostat 5",
+          "c1_t6": "Name of C1 Thermostat 6",
+          "c1_t7": "Name of C1 Thermostat 7",
+          "c1_t8": "Name of C1 Thermostat 8",
+          "c1_t9": "Name of C1 Thermostat 9",
+          "c1_t10": "Name of C1 Thermostat 10",
+          "c1_t11": "Name of C1 Thermostat 11",
+          "c1_t12": "Name of C1 Thermostat 12",
+
+          "c2_t1": "Name of C2 Thermostat 1",
+          "c2_t2": "Name of C2 Thermostat 2",
+          "c2_t3": "Name of C2 Thermostat 3",
+          "c2_t4": "Name of C2 Thermostat 4",
+          "c2_t5": "Name of C2 Thermostat 5",
+          "c2_t6": "Name of C2 Thermostat 6",
+          "c2_t7": "Name of C2 Thermostat 7",
+          "c2_t8": "Name of C2 Thermostat 8",
+          "c2_t9": "Name of C2 Thermostat 9",
+          "c2_t10": "Name of C2 Thermostat 10",
+          "c2_t11": "Name of C2 Thermostat 11",
+          "c2_t12": "Name of C2 Thermostat 12",
+
+          "c3_t1": "Name of C3 Thermostat 1",
+          "c3_t2": "Name of C3 Thermostat 2",
+          "c3_t3": "Name of C3 Thermostat 3",
+          "c3_t4": "Name of C3 Thermostat 4",
+          "c3_t5": "Name of C3 Thermostat 5",
+          "c3_t6": "Name of C3 Thermostat 6",
+          "c3_t7": "Name of C3 Thermostat 7",
+          "c3_t8": "Name of C3 Thermostat 8",
+          "c3_t9": "Name of C3 Thermostat 9",
+          "c3_t10": "Name of C3 Thermostat 10",
+          "c3_t11": "Name of C3 Thermostat 11",
+          "c3_t12": "Name of C3 Thermostat 12",
+
+          "c4_t1": "Name of C4 Thermostat 1",
+          "c4_t2": "Name of C4 Thermostat 2",
+          "c4_t3": "Name of C4 Thermostat 3",
+          "c4_t4": "Name of C4 Thermostat 4",
+          "c4_t5": "Name of C4 Thermostat 5",
+          "c4_t6": "Name of C4 Thermostat 6",
+          "c4_t7": "Name of C4 Thermostat 7",
+          "c4_t8": "Name of C4 Thermostat 8",
+          "c4_t9": "Name of C4 Thermostat 9",
+          "c4_t10": "Name of C4 Thermostat 10",
+          "c4_t11": "Name of C4 Thermostat 11",
+          "c4_t12": "Name of C4 Thermostat 12"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "Invalid hostname or IP address."
+    },
+    "abort": {}
+  }
+}

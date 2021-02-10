@@ -2,28 +2,32 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from . import (
+from homeassistant.const import CONF_NAME
+from .const import (
     DOMAIN,
-    SIGNAL_UPONOR_STATE_UPDATE
+    SIGNAL_UPONOR_STATE_UPDATE,
+    DEVICE_MANUFACTURER
 )
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+async def async_setup_entry(hass, entry, async_add_entities):
     state_proxy = hass.data[DOMAIN]["state_proxy"]
-    entities = [AwaySwitch(state_proxy)]
+    entities = [AwaySwitch(state_proxy, entry.data[CONF_NAME])]
+
     if state_proxy.is_cool_available():
-        entities.append(CoolSwitch(state_proxy))
+        entities.append(CoolSwitch(state_proxy, entry.data[CONF_NAME]))
 
     async_add_entities(entities)
 
 
 class AwaySwitch(SwitchEntity):
-    def __init__(self, state_proxy):
+    def __init__(self, state_proxy, name):
         self._state_proxy = state_proxy
+        self._name = name
 
     @property
     def name(self) -> str:
-        return "Uponor Away"
+        return self._name + " Away"
 
     @property
     def icon(self):
@@ -52,14 +56,28 @@ class AwaySwitch(SwitchEntity):
     def _update_callback(self):
         self.async_schedule_update_ha_state(True)
 
+    @property
+    def unique_id(self):
+        return self.name
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {(DOMAIN, "c")},
+            "name": self._name,
+            "manufacturer": DEVICE_MANUFACTURER,
+            "model": self._state_proxy.get_model(),
+        }
+
 
 class CoolSwitch(SwitchEntity):
-    def __init__(self, state_proxy):
+    def __init__(self, state_proxy, name):
         self._state_proxy = state_proxy
+        self._name = name
 
     @property
     def name(self) -> str:
-        return "Uponor Cooling Mode"
+        return self._name + " Cooling Mode"
 
     @property
     def icon(self):
@@ -87,3 +105,16 @@ class CoolSwitch(SwitchEntity):
     @callback
     def _update_callback(self):
         self.async_schedule_update_ha_state(True)
+
+    @property
+    def unique_id(self):
+        return self.name
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {(DOMAIN, "c")},
+            "name": self._name,
+            "manufacturer": DEVICE_MANUFACTURER,
+            "model": self._state_proxy.get_model(),
+        }
