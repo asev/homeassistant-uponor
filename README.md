@@ -32,6 +32,7 @@ Each thermostat will be registered as a separate device. Also one device will be
 `switch.uponor_cooling_mode` activates cooling mode when switched on and heating mode when it's switched off.
 This switch will be added only if cooling is available in your system.
 
+`uponor.set_variable` service allows to send POST requests to Uponor API. Use it with caution!
 
 ### Climate entity
 

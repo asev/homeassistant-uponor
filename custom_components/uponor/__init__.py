@@ -59,6 +59,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         "thermostats": thermostats
     }
 
+    def handle_set_variable(call):
+        var_name = call.data.get('var_name')
+        var_value = call.data.get('var_value')
+        hass.data[DOMAIN]['state_proxy'].set_variable(var_name, var_value)
+
+    hass.services.async_register(DOMAIN, "set_variable", handle_set_variable)
+
     hass.async_create_task(hass.config_entries.async_forward_entry_setup(config_entry, "climate"))
     hass.async_create_task(hass.config_entries.async_forward_entry_setup(config_entry, "switch"))
 
@@ -278,4 +285,9 @@ class UponorStateProxy:
 
     async def async_update(self, event_time):
         self._data = await self._hass.async_add_executor_job(lambda: self._client.get_data())
+        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
+
+    def set_variable(self, var_name, var_value):
+        self._client.send_data({var_name: var_value})
+        self._data[var_name] = var_value
         async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)

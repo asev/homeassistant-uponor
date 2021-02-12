@@ -1,0 +1,9 @@
+set_variable:
+  description: Send variable update to Uponor API
+  fields:
+    var_name:
+      description: Name of the variable
+      example: "sys_heat_cool_mode"
+    var_value:
+      description: Value of the variable
+      example: 0
