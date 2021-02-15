@@ -146,16 +146,16 @@ class UponorStateProxy:
         var = thermostat + '_setpoint'
         if var in self._data:
             temp = math.floor((int(self._data[var]) - 320) / 1.8) / 10
-            return math.floor((int(self._data[var]) - self.get_setback(thermostat, temp) - 320) / 1.8) / 10
+            return math.floor((int(self._data[var]) - self.get_active_setback(thermostat, temp) - 320) / 1.8) / 10
 
     def set_setpoint(self, thermostat, temp):
         var = thermostat + '_setpoint'
-        setpoint = int(temp * 18 + self.get_setback(thermostat, temp) + 320)
+        setpoint = int(temp * 18 + self.get_active_setback(thermostat, temp) + 320)
         self._client.send_data({var: setpoint})
         self._data[var] = setpoint
         async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
-    def get_setback(self, thermostat, temp):
+    def get_active_setback(self, thermostat, temp):
         if temp == self.get_min_limit(thermostat) or temp == self.get_max_limit(thermostat):
             return 0
 
@@ -276,10 +276,17 @@ class UponorStateProxy:
         async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     def is_eco(self, thermostat):
+        if self.get_eco_setback(thermostat) == 0:
+            return False
         var = thermostat + '_stat_cb_comfort_eco_mode'
         var_temp = 'cust_Temporary_ECO_Activation'
         return (var in self._data and self._data[var] == "1") or (
                     var_temp in self._data and self._data[var_temp] == "1")
+
+    def get_eco_setback(self, thermostat):
+        var = thermostat + '_eco_offset'
+        if var in self._data:
+            return round(int(self._data[var]) / 18, 1)
 
     # Rest
 
