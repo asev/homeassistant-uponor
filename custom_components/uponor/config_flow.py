@@ -41,12 +41,12 @@ class DomainConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             try:
                 client = UponorJnap(user_input[CONF_HOST])
-                self._api_response = client.get_data()
-            except:
+                self._api_response = await self.hass.async_add_executor_job(client.get_data)
+            except Exception as e:
                 return self.async_show_form(
                     step_id="user",
                     data_schema=self.schema,
-                    errors={"base": "invalid_host"}
+                    errors={"base": "invalid_host", "debug": repr(e)}
                 )
 
             self._entry_data = user_input
