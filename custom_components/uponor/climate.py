@@ -149,7 +149,7 @@ class UponorClimate(ClimateEntity):
         return self._state_proxy.get_setpoint(self._thermostat)
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         return {
             'id': self._thermostat,
             'status': self._state_proxy.get_status(self._thermostat),
