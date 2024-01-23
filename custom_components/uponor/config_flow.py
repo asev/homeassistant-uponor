@@ -16,6 +16,10 @@ from .const import (
     DEVICE_MANUFACTURER
 )
 
+from .helper import (
+    get_unique_id_from
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -36,7 +40,9 @@ class DomainConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         if user_input is not None:
-            await self.async_set_unique_id(DOMAIN)
+            unique_id = get_unique_id_from(user_input[CONF_NAME])
+
+            await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
             try:

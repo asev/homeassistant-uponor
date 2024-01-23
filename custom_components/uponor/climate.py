@@ -24,31 +24,39 @@ from homeassistant.components.climate.const import (
 )
 
 from .const import (
-    DOMAIN,
     SIGNAL_UPONOR_STATE_UPDATE,
     DEVICE_MANUFACTURER
+)
+
+from homeassistant.const import CONF_NAME
+
+from .helper import (
+    get_unique_id_from
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    state_proxy = hass.data[DOMAIN]["state_proxy"]
+    unique_id = get_unique_id_from(entry.data[CONF_NAME])
+
+    state_proxy = hass.data[unique_id]["state_proxy"]
 
     entities = []
-    for thermostat in hass.data[DOMAIN]["thermostats"]:
+    for thermostat in hass.data[unique_id]["thermostats"]:
         if thermostat.lower() in entry.data:
             name = entry.data[thermostat.lower()]
         else:
             name = state_proxy.get_room_name(thermostat)
-        entities.append(UponorClimate(state_proxy, thermostat, name))
+        entities.append(UponorClimate(unique_id, state_proxy, thermostat, name))
     if entities:
         async_add_entities(entities, update_before_add=False)
 
 
 class UponorClimate(ClimateEntity):
 
-    def __init__(self, state_proxy, thermostat, name):
+    def __init__(self, unique_instance_id, state_proxy, thermostat, name):
+        self._unique_instance_id = unique_instance_id
         self._state_proxy = state_proxy
         self._thermostat = thermostat
         self._name = name
@@ -164,7 +172,7 @@ class UponorClimate(ClimateEntity):
     @property
     def device_info(self):
         return {
-            "identifiers": {(DOMAIN, self._state_proxy.get_thermostat_id(self._thermostat))},
+            "identifiers": {(self._unique_instance_id, self._state_proxy.get_thermostat_id(self._thermostat))},
             "name": self._name,
             "manufacturer": DEVICE_MANUFACTURER,
             "model": self._state_proxy.get_model(),
