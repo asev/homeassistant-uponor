@@ -19,8 +19,7 @@ from .const import (
 
 from .helper import (
     create_unique_id_from_user_input,
-    generate_unique_id_from_user_input,
-    get_unique_id_from
+    generate_unique_id_from_user_input_conf_name,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,7 +45,7 @@ class DomainConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             unique_id = create_unique_id_from_user_input(user_input)
             if unique_id is None:
-                unique_id = generate_unique_id_from_user_input(user_input)
+                unique_id = generate_unique_id_from_user_input_conf_name(user_input)
 
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()

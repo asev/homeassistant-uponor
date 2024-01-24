@@ -38,7 +38,7 @@ from .const import (
 )
 
 from .helper import (
-    get_unique_id_from
+    get_unique_id_from_config_entry
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     host = config_entry.data[CONF_HOST]
-    unique_id = get_unique_id_from(config_entry.data[CONF_NAME])
+    unique_id = get_unique_id_from_config_entry(config_entry)
     store = hass.helpers.storage.Store(STORAGE_VERSION, STORAGE_KEY)
 
     state_proxy = await hass.async_add_executor_job(lambda: UponorStateProxy(hass, host, store, unique_id))

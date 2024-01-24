@@ -9,12 +9,12 @@ from .const import (
 )
 
 from .helper import (
-    get_unique_id_from
+    get_unique_id_from_config_entry
 )
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    unique_id = get_unique_id_from(entry.data[CONF_NAME])
+    unique_id = get_unique_id_from_config_entry(entry)
 
     state_proxy = hass.data[unique_id]["state_proxy"]
     entities = [AwaySwitch(unique_id, state_proxy, entry.data[CONF_NAME])]
