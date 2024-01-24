@@ -1,6 +1,5 @@
 from homeassistant import config_entries
 import voluptuous as vol
-import homeassistant.helpers.config_validation as cv
 import logging
 
 from UponorJnap import UponorJnap
@@ -12,8 +11,13 @@ from homeassistant.const import (
 
 from .const import (
     DOMAIN,
-    SIGNAL_UPONOR_STATE_UPDATE,
+    CONF_UNIQUE_ID,
     DEVICE_MANUFACTURER
+)
+
+from .helper import (
+    create_unique_id_from_user_input,
+    generate_unique_id_from_user_input_conf_name,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,13 +34,18 @@ class DomainConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_HOST): str,
                 vol.Required(CONF_NAME, default=DEVICE_MANUFACTURER): str,
+                vol.Optional(CONF_UNIQUE_ID): str
             }
         )
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         if user_input is not None:
-            await self.async_set_unique_id(DOMAIN)
+            unique_id = create_unique_id_from_user_input(user_input)
+            if unique_id is None:
+                unique_id = generate_unique_id_from_user_input_conf_name(user_input)
+
+            await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
             try:

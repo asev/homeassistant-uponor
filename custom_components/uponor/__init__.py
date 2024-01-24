@@ -1,19 +1,12 @@
-from datetime import timedelta
 import math
-import ipaddress
-import requests
-import voluptuous as vol
 import logging
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
 from homeassistant.const import CONF_HOST
-import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.discovery import async_load_platform
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from UponorJnap import UponorJnap
 
 from .const import (
@@ -37,24 +30,30 @@ from .const import (
     DEFAULT_TEMP
 )
 
+from .helper import (
+    get_unique_id_from_config_entry
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN]["config"] = config.get(DOMAIN) or {}
+    # just return True, we're not using this!
+    # hass.data.setdefault(DOMAIN, {})
+    # hass.data[DOMAIN]["config"] = config.get(DOMAIN) or {}
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     host = config_entry.data[CONF_HOST]
+    unique_id = get_unique_id_from_config_entry(config_entry)
     store = hass.helpers.storage.Store(STORAGE_VERSION, STORAGE_KEY)
 
-    state_proxy = await hass.async_add_executor_job(lambda: UponorStateProxy(hass, host, store))
+    state_proxy = await hass.async_add_executor_job(lambda: UponorStateProxy(hass, host, store, unique_id))
     await state_proxy.async_update(0)
     thermostats = state_proxy.get_active_thermostats()
 
-    hass.data[DOMAIN] = {
+    hass.data[unique_id] = {
         "state_proxy": state_proxy,
         "thermostats": thermostats
     }
@@ -62,7 +61,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     def handle_set_variable(call):
         var_name = call.data.get('var_name')
         var_value = call.data.get('var_value')
-        hass.data[DOMAIN]['state_proxy'].set_variable(var_name, var_value)
+        hass.data[unique_id]['state_proxy'].set_variable(var_name, var_value)
 
     hass.services.async_register(DOMAIN, "set_variable", handle_set_variable)
 
@@ -75,12 +74,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
 
 class UponorStateProxy:
-    def __init__(self, hass, host, store):
+    def __init__(self, hass, host, store, unique_id):
         self._hass = hass
         self._client = UponorJnap(host)
         self._store = store
         self._data = {}
         self._storage_data = {}
+        self._unique_id = unique_id
 
     # Thermostats config
 
@@ -217,7 +217,7 @@ class UponorStateProxy:
     # HVAC modes
 
     async def async_switch_to_cooling(self):
-        for thermostat in self._hass.data[DOMAIN]['thermostats']:
+        for thermostat in self._hass.data[self._unique_id]['thermostats']:
             if self.get_setpoint(thermostat) == self.get_min_limit(thermostat):
                 await self._hass.async_add_executor_job(
                     lambda: self.set_setpoint(thermostat, self.get_max_limit(thermostat)))
@@ -227,7 +227,7 @@ class UponorStateProxy:
         async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     async def async_switch_to_heating(self):
-        for thermostat in self._hass.data[DOMAIN]['thermostats']:
+        for thermostat in self._hass.data[self._unique_id]['thermostats']:
             if self.get_setpoint(thermostat) == self.get_max_limit(thermostat):
                 await self._hass.async_add_executor_job(
                     lambda: self.set_setpoint(thermostat, self.get_min_limit(thermostat)))

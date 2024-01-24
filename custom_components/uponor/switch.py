@@ -4,26 +4,32 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from homeassistant.const import CONF_NAME
 from .const import (
-    DOMAIN,
     SIGNAL_UPONOR_STATE_UPDATE,
     DEVICE_MANUFACTURER
 )
 
+from .helper import (
+    get_unique_id_from_config_entry
+)
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    state_proxy = hass.data[DOMAIN]["state_proxy"]
-    entities = [AwaySwitch(state_proxy, entry.data[CONF_NAME])]
+    unique_id = get_unique_id_from_config_entry(entry)
+
+    state_proxy = hass.data[unique_id]["state_proxy"]
+    entities = [AwaySwitch(unique_id, state_proxy, entry.data[CONF_NAME])]
 
     if state_proxy.is_cool_available():
-        entities.append(CoolSwitch(state_proxy, entry.data[CONF_NAME]))
+        entities.append(CoolSwitch(unique_id, state_proxy, entry.data[CONF_NAME]))
 
     async_add_entities(entities)
 
 
 class AwaySwitch(SwitchEntity):
-    def __init__(self, state_proxy, name):
+    def __init__(self, unique_instance_id, state_proxy, name):
         self._state_proxy = state_proxy
         self._name = name
+        self._unique_instance_id = unique_instance_id
 
     @property
     def name(self) -> str:
@@ -63,7 +69,7 @@ class AwaySwitch(SwitchEntity):
     @property
     def device_info(self):
         return {
-            "identifiers": {(DOMAIN, "c")},
+            "identifiers": {(self._unique_instance_id, "c")},
             "name": self._name,
             "manufacturer": DEVICE_MANUFACTURER,
             "model": self._state_proxy.get_model(),
@@ -71,9 +77,10 @@ class AwaySwitch(SwitchEntity):
 
 
 class CoolSwitch(SwitchEntity):
-    def __init__(self, state_proxy, name):
+    def __init__(self, unique_instance_id, state_proxy, name):
         self._state_proxy = state_proxy
         self._name = name
+        self._unique_instance_id = unique_instance_id
 
     @property
     def name(self) -> str:
@@ -113,7 +120,7 @@ class CoolSwitch(SwitchEntity):
     @property
     def device_info(self):
         return {
-            "identifiers": {(DOMAIN, "c")},
+            "identifiers": {(self._unique_instance_id, "c")},
             "name": self._name,
             "manufacturer": DEVICE_MANUFACTURER,
             "model": self._state_proxy.get_model(),
