@@ -6,21 +6,15 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from homeassistant.const import (
     ATTR_TEMPERATURE,
-    TEMP_CELSIUS
+    UnitOfTemperature
 )
 
 from homeassistant.components.climate.const import (
-    HVAC_MODE_HEAT,
-    HVAC_MODE_COOL,
-    HVAC_MODE_OFF,
-    CURRENT_HVAC_OFF,
-    CURRENT_HVAC_HEAT,
-    CURRENT_HVAC_COOL,
-    CURRENT_HVAC_IDLE,
+    HVACMode,
+    HVACAction,
     PRESET_AWAY,
     PRESET_ECO,
-    SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_PRESET_MODE
+    ClimateEntityFeature,
 )
 
 from .const import (
@@ -79,38 +73,38 @@ class UponorClimate(ClimateEntity):
     @property
     def supported_features(self):
         if self._is_on:
-            return SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
+            return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
         return 0
 
     @property
     def hvac_action(self):
         if not self._is_on:
-            return CURRENT_HVAC_OFF
+            return HVACAction.OFF
         if self._state_proxy.is_active(self._thermostat):
-            return CURRENT_HVAC_COOL if self._state_proxy.is_cool_enabled() else CURRENT_HVAC_HEAT
-        return CURRENT_HVAC_IDLE
+            return HVACAction.COOLING if self._state_proxy.is_cool_enabled() else HVACAction.HEATING
+        return HVACAction.IDLE
 
     @property
     def hvac_mode(self):
         if not self._is_on:
-            return HVAC_MODE_OFF
+            return HVACMode.OFF
         if self._state_proxy.is_cool_enabled():
-            return HVAC_MODE_COOL
-        return HVAC_MODE_HEAT
+            return HVACMode.COOL
+        return HVACMode.HEAT
 
     async def async_set_hvac_mode(self, hvac_mode):
-        if hvac_mode == HVAC_MODE_OFF and self._is_on:
+        if hvac_mode == HVACMode.OFF and self._is_on:
             await self._state_proxy.async_turn_off(self._thermostat)
             self._is_on = False
-        if (hvac_mode == HVAC_MODE_HEAT or hvac_mode == HVAC_MODE_COOL) and not self._is_on:
+        if (hvac_mode == HVACMode.HEAT or hvac_mode == HVACMode.COOL) and not self._is_on:
             await self._state_proxy.async_turn_on(self._thermostat)
             self._is_on = True
 
     @property
     def hvac_modes(self):
         if self._state_proxy.is_cool_enabled():
-            return [HVAC_MODE_COOL, HVAC_MODE_OFF]
-        return [HVAC_MODE_HEAT, HVAC_MODE_OFF]
+            return [HVACMode.COOL, HVACMode.OFF]
+        return [HVACMode.HEAT, HVACMode.OFF]
 
     @property
     def preset_mode(self):
@@ -126,7 +120,7 @@ class UponorClimate(ClimateEntity):
 
     @property
     def temperature_unit(self):
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
     @property
     def current_temperature(self):
