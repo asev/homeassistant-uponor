@@ -1,6 +1,5 @@
 from homeassistant import config_entries
 import voluptuous as vol
-import homeassistant.helpers.config_validation as cv
 import logging
 
 from UponorJnap import UponorJnap
@@ -12,7 +11,6 @@ from homeassistant.const import (
 
 from .const import (
     DOMAIN,
-    SIGNAL_UPONOR_STATE_UPDATE,
     DEVICE_MANUFACTURER
 )
 
