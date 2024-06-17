@@ -1,24 +1,17 @@
-from datetime import timedelta
 import math
-import ipaddress
-import requests
-import voluptuous as vol
 import logging
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 
 from homeassistant.const import CONF_HOST
-import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.discovery import async_load_platform
-from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.storage import Store
 from UponorJnap import UponorJnap
 
 from .const import (
     DOMAIN,
-    SIGNAL_UPONOR_STATE_UPDATE,
     SCAN_INTERVAL,
     STORAGE_KEY,
     STORAGE_VERSION,
@@ -48,10 +41,10 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     host = config_entry.data[CONF_HOST]
-    store = hass.helpers.storage.Store(STORAGE_VERSION, STORAGE_KEY)
+    store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
 
     state_proxy = await hass.async_add_executor_job(lambda: UponorStateProxy(hass, host, store))
-    await state_proxy.async_update(0)
+    await state_proxy.async_update()
     thermostats = state_proxy.get_active_thermostats()
 
     hass.data[DOMAIN] = {
@@ -66,13 +59,25 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     hass.services.async_register(DOMAIN, "set_variable", handle_set_variable)
 
-    hass.async_create_task(hass.config_entries.async_forward_entry_setup(config_entry, "climate"))
-    hass.async_create_task(hass.config_entries.async_forward_entry_setup(config_entry, "switch"))
+    await hass.config_entries.async_forward_entry_setup(config_entry, Platform.CLIMATE)
+    await hass.config_entries.async_forward_entry_setup(config_entry, Platform.SWITCH)
 
-    async_track_time_interval(hass, state_proxy.async_update, SCAN_INTERVAL)
+    # async_track_time_interval(hass, state_proxy.async_update, SCAN_INTERVAL)
+
+    config_entry.async_on_unload(config_entry.add_update_listener(async_update_options))
 
     return True
 
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Update options."""
+    _LOGGER.debug("Update setup entry: %s, data: %s, options: %s", entry.entry_id, entry.data, entry.options)
+    await hass.config_entries.async_reload(entry.entry_id)
+
+async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    _LOGGER.debug("Unloading setup entry: %s, data: %s, options: %s", config_entry.entry_id, config_entry.data, config_entry.options)
+    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, [Platform.SWITCH, Platform.CLIMATE])
+    return unload_ok
 
 class UponorStateProxy:
     def __init__(self, hass, host, store):
@@ -148,13 +153,6 @@ class UponorStateProxy:
             temp = math.floor((int(self._data[var]) - 320) / 1.8) / 10
             return math.floor((int(self._data[var]) - self.get_active_setback(thermostat, temp) - 320) / 1.8) / 10
 
-    def set_setpoint(self, thermostat, temp):
-        var = thermostat + '_setpoint'
-        setpoint = int(temp * 18 + self.get_active_setback(thermostat, temp) + 320)
-        self._client.send_data({var: setpoint})
-        self._data[var] = setpoint
-        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
-
     def get_active_setback(self, thermostat, temp):
         if temp == self.get_min_limit(thermostat) or temp == self.get_max_limit(thermostat):
             return 0
@@ -219,28 +217,24 @@ class UponorStateProxy:
     async def async_switch_to_cooling(self):
         for thermostat in self._hass.data[DOMAIN]['thermostats']:
             if self.get_setpoint(thermostat) == self.get_min_limit(thermostat):
-                await self._hass.async_add_executor_job(
-                    lambda: self.set_setpoint(thermostat, self.get_max_limit(thermostat)))
-
+                await self.set_setpoint(thermostat, self.get_max_limit(thermostat))
+        
         await self._hass.async_add_executor_job(lambda: self._client.send_data({'sys_heat_cool_mode': '1'}))
         self._data['sys_heat_cool_mode'] = '1'
-        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     async def async_switch_to_heating(self):
         for thermostat in self._hass.data[DOMAIN]['thermostats']:
             if self.get_setpoint(thermostat) == self.get_max_limit(thermostat):
-                await self._hass.async_add_executor_job(
-                    lambda: self.set_setpoint(thermostat, self.get_min_limit(thermostat)))
+                await self.set_setpoint(thermostat, self.get_min_limit(thermostat))
 
         await self._hass.async_add_executor_job(lambda: self._client.send_data({'sys_heat_cool_mode': '0'}))
         self._data['sys_heat_cool_mode'] = '0'
-        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     async def async_turn_on(self, thermostat):
         data = await self._store.async_load()
         self._storage_data = {} if data is None else data
         last_temp = self._storage_data[thermostat] if thermostat in self._storage_data else DEFAULT_TEMP
-        await self._hass.async_add_executor_job(lambda: self.set_setpoint(thermostat, last_temp))
+        await self.set_setpoint(thermostat, last_temp)
 
     async def async_turn_off(self, thermostat):
         data = await self._store.async_load()
@@ -248,7 +242,7 @@ class UponorStateProxy:
         self._storage_data[thermostat] = self.get_setpoint(thermostat)
         await self._store.async_save(self._storage_data)
         off_temp = self.get_max_limit(thermostat) if self.is_cool_enabled() else self.get_min_limit(thermostat)
-        await self._hass.async_add_executor_job(lambda: self.set_setpoint(thermostat, off_temp))
+        await self.set_setpoint(thermostat, off_temp)
 
     # Cooling
 
@@ -273,7 +267,6 @@ class UponorStateProxy:
         data = "1" if is_away else "0"
         await self._hass.async_add_executor_job(lambda: self._client.send_data({var: data}))
         self._data[var] = data
-        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     def is_eco(self, thermostat):
         if self.get_eco_setback(thermostat) == 0:
@@ -290,11 +283,16 @@ class UponorStateProxy:
 
     # Rest
 
-    async def async_update(self, event_time):
+    async def async_update(self):
         self._data = await self._hass.async_add_executor_job(lambda: self._client.get_data())
-        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     def set_variable(self, var_name, var_value):
+        _LOGGER.debug("Called set variable: name: %s, value: %s, data: %s", var_name, var_value, self._data)
         self._client.send_data({var_name: var_value})
         self._data[var_name] = var_value
-        async_dispatcher_send(self._hass, SIGNAL_UPONOR_STATE_UPDATE)
+
+    async def set_setpoint(self, thermostat, temp):
+        var = thermostat + '_setpoint'
+        setpoint = int(temp * 18 + self.get_active_setback(thermostat, temp) + 320)
+        await self._hass.async_add_executor_job(lambda: self._client.send_data({var: setpoint}))
+        self._data[var] = setpoint
