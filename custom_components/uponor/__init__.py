@@ -62,7 +62,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     await hass.config_entries.async_forward_entry_setup(config_entry, Platform.CLIMATE)
     await hass.config_entries.async_forward_entry_setup(config_entry, Platform.SWITCH)
 
-    # async_track_time_interval(hass, state_proxy.async_update, SCAN_INTERVAL)
+    async_track_time_interval(hass, state_proxy.async_update, SCAN_INTERVAL)
 
     config_entry.async_on_unload(config_entry.add_update_listener(async_update_options))
 
