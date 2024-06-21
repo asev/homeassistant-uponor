@@ -283,7 +283,7 @@ class UponorStateProxy:
 
     # Rest
 
-    async def async_update(self):
+    async def async_update(self,_=None):
         self._data = await self._hass.async_add_executor_job(lambda: self._client.get_data())
 
     def set_variable(self, var_name, var_value):
