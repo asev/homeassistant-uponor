@@ -9,6 +9,7 @@ from homeassistant.const import CONF_HOST
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from UponorJnap import UponorJnap
+import homeassistant.util.dt as dt_util
 
 from .const import (
     DOMAIN,
@@ -86,6 +87,7 @@ class UponorStateProxy:
         self._store = store
         self._data = {}
         self._storage_data = {}
+        self.next_sp_from_dt = None
 
     # Thermostats config
 
@@ -280,11 +282,19 @@ class UponorStateProxy:
         var = thermostat + '_eco_offset'
         if var in self._data:
             return round(int(self._data[var]) / 18, 1)
+        
+    def get_last_update(self):
+        return self.next_sp_from_dt
 
     # Rest
-
-    async def async_update(self):
-        self._data = await self._hass.async_add_executor_job(lambda: self._client.get_data())
+    async def async_update(self,_=None):
+        '# try to change update calls doing one in same second'
+        'TODO call self.async_write_ha_state() in climate and switch'
+        if self.next_sp_from_dt is None or dt_util.now() >= self.next_sp_from_dt:
+            self.next_sp_from_dt = dt_util.now()
+            self._data = await self._hass.async_add_executor_job(lambda: self._client.get_data())
+        else:
+            _LOGGER.warning("A lot of asyn_update calls at " + str(dt_util.now()))
 
     def set_variable(self, var_name, var_value):
         _LOGGER.debug("Called set variable: name: %s, value: %s, data: %s", var_name, var_value, self._data)

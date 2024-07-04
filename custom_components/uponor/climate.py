@@ -152,7 +152,7 @@ class UponorClimate(ClimateEntity):
     async def async_update(self):
         # Update uponor (to get HC mode) and thermostat
         try:
-### se ha elimininado el 0 del update
+            ### se ha elimininado el 0 del update
             await self._state_proxy.async_update()
             temp = self._state_proxy.get_setpoint(self._thermostat)
             is_cool = self._state_proxy.is_cool_enabled()
