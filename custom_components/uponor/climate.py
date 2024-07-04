@@ -111,6 +111,7 @@ class UponorClimate(ClimateEntity):
             'id': self._thermostat,
             'status': self._state_proxy.get_status(self._thermostat),
             'pulse_width_modulation': self._state_proxy.get_pwm(self._thermostat),
+            'last_update': self._state_proxy.get_last_update(),
             'eco_setback': self._state_proxy.get_eco_setback(self._thermostat),
         }
 
