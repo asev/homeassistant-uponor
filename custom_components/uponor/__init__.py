@@ -6,6 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 
 from homeassistant.const import CONF_HOST
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from UponorJnap import UponorJnap
@@ -13,6 +14,7 @@ import homeassistant.util.dt as dt_util
 
 from .const import (
     DOMAIN,
+    SIGNAL_UPONOR_STATE_UPDATE,
     SCAN_INTERVAL,
     STORAGE_KEY,
     STORAGE_VERSION,
@@ -33,6 +35,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+PLATFORMS = [Platform.CLIMATE, Platform.SWITCH]
 
 async def async_setup(hass: HomeAssistant, config: dict):
     hass.data.setdefault(DOMAIN, {})
@@ -60,8 +63,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     hass.services.async_register(DOMAIN, "set_variable", handle_set_variable)
 
-    await hass.config_entries.async_forward_entry_setup(config_entry, Platform.CLIMATE)
-    await hass.config_entries.async_forward_entry_setup(config_entry, Platform.SWITCH)
+    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     async_track_time_interval(hass, state_proxy.async_update, SCAN_INTERVAL)
 
@@ -223,6 +225,7 @@ class UponorStateProxy:
         
         await self._hass.async_add_executor_job(lambda: self._client.send_data({'sys_heat_cool_mode': '1'}))
         self._data['sys_heat_cool_mode'] = '1'
+        self._hass.async_add_job(async_dispatcher_send, self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     async def async_switch_to_heating(self):
         for thermostat in self._hass.data[DOMAIN]['thermostats']:
@@ -231,6 +234,7 @@ class UponorStateProxy:
 
         await self._hass.async_add_executor_job(lambda: self._client.send_data({'sys_heat_cool_mode': '0'}))
         self._data['sys_heat_cool_mode'] = '0'
+        self._hass.async_add_job(async_dispatcher_send, self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     async def async_turn_on(self, thermostat):
         data = await self._store.async_load()
@@ -269,6 +273,7 @@ class UponorStateProxy:
         data = "1" if is_away else "0"
         await self._hass.async_add_executor_job(lambda: self._client.send_data({var: data}))
         self._data[var] = data
+        self._hass.async_add_job(async_dispatcher_send, self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     def is_eco(self, thermostat):
         if self.get_eco_setback(thermostat) == 0:
@@ -288,21 +293,22 @@ class UponorStateProxy:
 
     # Rest
     async def async_update(self,_=None):
-        '# try to change update calls doing one in same second'
-        'TODO call self.async_write_ha_state() in climate and switch'
-        if self.next_sp_from_dt is None or dt_util.now() >= self.next_sp_from_dt:
+        try:
             self.next_sp_from_dt = dt_util.now()
             self._data = await self._hass.async_add_executor_job(lambda: self._client.get_data())
-        else:
-            _LOGGER.warning("A lot of asyn_update calls at " + str(dt_util.now()))
-
+            self._hass.async_add_job(async_dispatcher_send, self._hass, SIGNAL_UPONOR_STATE_UPDATE)
+        except Exception as ex:
+            _LOGGER.error("Uponor thermostat was unable to update: %s", ex)
+        
     def set_variable(self, var_name, var_value):
         _LOGGER.debug("Called set variable: name: %s, value: %s, data: %s", var_name, var_value, self._data)
         self._client.send_data({var_name: var_value})
         self._data[var_name] = var_value
+        self._hass.async_add_job(async_dispatcher_send, self._hass, SIGNAL_UPONOR_STATE_UPDATE)
 
     async def set_setpoint(self, thermostat, temp):
         var = thermostat + '_setpoint'
         setpoint = int(temp * 18 + self.get_active_setback(thermostat, temp) + 320)
         await self._hass.async_add_executor_job(lambda: self._client.send_data({var: setpoint}))
         self._data[var] = setpoint
+        self._hass.async_add_job(async_dispatcher_send, self._hass, SIGNAL_UPONOR_STATE_UPDATE)

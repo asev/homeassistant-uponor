@@ -1,8 +1,11 @@
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.core import callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from homeassistant.const import CONF_NAME
 from .const import (
     DOMAIN,
+    SIGNAL_UPONOR_STATE_UPDATE,
     DEVICE_MANUFACTURER
 )
 
@@ -30,9 +33,9 @@ class AwaySwitch(SwitchEntity):
     def icon(self):
         return "mdi:home-export-outline"
 
-    # @property
-    # def should_poll(self):
-    #     return False
+    @property
+    def should_poll(self):
+        return False
 
     @property
     def is_on(self):
@@ -43,9 +46,15 @@ class AwaySwitch(SwitchEntity):
 
     async def async_turn_off(self, **kwargs):
         await self._state_proxy.async_set_away(False)
+    
+    async def async_added_to_hass(self):
+        async_dispatcher_connect(
+            self.hass, SIGNAL_UPONOR_STATE_UPDATE, self._update_callback
+        )
 
-    async def async_update(self):
-        await self._state_proxy.async_update()
+    @callback
+    def _update_callback(self):
+        self.async_schedule_update_ha_state(True)
 
     @property
     def unique_id(self):
@@ -74,9 +83,9 @@ class CoolSwitch(SwitchEntity):
     def icon(self):
         return "mdi:snowflake"
 
-    # @property
-    # def should_poll(self):
-    #     return False
+    @property
+    def should_poll(self):
+        return False
 
     @property
     def is_on(self):
@@ -87,9 +96,15 @@ class CoolSwitch(SwitchEntity):
 
     async def async_turn_off(self, **kwargs):
         await self._state_proxy.async_switch_to_heating()
-        
-    async def async_update(self):
-        await self._state_proxy.async_update()
+    
+    async def async_added_to_hass(self):
+        async_dispatcher_connect(
+            self.hass, SIGNAL_UPONOR_STATE_UPDATE, self._update_callback
+        )
+
+    @callback
+    def _update_callback(self):
+        self.async_schedule_update_ha_state(True)
 
     @property
     def unique_id(self):

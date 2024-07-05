@@ -1,6 +1,8 @@
 import logging
 
 from homeassistant.components.climate import ClimateEntity
+from homeassistant.core import callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from homeassistant.const import (
     ATTR_TEMPERATURE,
@@ -17,6 +19,7 @@ from homeassistant.components.climate.const import (
 
 from .const import (
     DOMAIN,
+    SIGNAL_UPONOR_STATE_UPDATE,
     DEVICE_MANUFACTURER
 )
 
@@ -63,6 +66,22 @@ class UponorClimate(ClimateEntity):
     def name(self):
         return self._name
     
+    @property
+    def should_poll(self):
+        return False
+
+    async def async_added_to_hass(self):
+        async_dispatcher_connect(
+            self.hass, SIGNAL_UPONOR_STATE_UPDATE, self._update_callback
+        )
+
+    @callback
+    def _update_callback(self):
+        temp = self._state_proxy.get_setpoint(self._thermostat)
+        is_cool = self._state_proxy.is_cool_enabled()
+        self._is_on = not ((is_cool and temp >= self.max_temp) or (not is_cool and temp <= self.min_temp))
+        self.async_schedule_update_ha_state(True)
+
     @property
     def unique_id(self):
         return self._state_proxy.get_thermostat_id(self._thermostat)
@@ -149,19 +168,6 @@ class UponorClimate(ClimateEntity):
             await self._state_proxy.async_turn_on(self._thermostat)
             self._is_on = True
 
-    # ** Actions **
-    async def async_update(self):
-        # Update uponor (to get HC mode) and thermostat
-        try:
-            ### se ha elimininado el 0 del update
-            await self._state_proxy.async_update()
-            temp = self._state_proxy.get_setpoint(self._thermostat)
-            is_cool = self._state_proxy.is_cool_enabled()
-            self._is_on = not ((is_cool and temp >= self.max_temp) or (not is_cool and temp <= self.min_temp))
-
-        except Exception as ex:
-            _LOGGER.error("Uponor thermostat was unable to update: %s", ex)
-
     async def async_set_hvac_mode(self, hvac_mode):
         if hvac_mode == HVACMode.OFF and self._is_on:
             await self._state_proxy.async_turn_off(self._thermostat)
@@ -169,12 +175,6 @@ class UponorClimate(ClimateEntity):
         if (hvac_mode == HVACMode.HEAT or hvac_mode == HVACMode.COOL) and not self._is_on:
             await self._state_proxy.async_turn_on(self._thermostat)
             self._is_on = True
-        
-        # if (hvac_mode == HVACMode.HEAT):
-        #     await self._state_proxy.async_switch_to_heating()
-        # if (hvac_mode == HVACMode.COOL):
-        #     await self._state_proxy.async_switch_to_cooling()
-        
 
     async def async_set_temperature(self, **kwargs):
         if kwargs.get(ATTR_TEMPERATURE) is None:
