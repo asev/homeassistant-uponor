@@ -106,7 +106,8 @@ class UponorClimate(ClimateEntity):
     
     @property
     def current_humidity(self):
-        return self._state_proxy.get_humidity(self._thermostat)
+        humidity = self._state_proxy.get_humidity(self._thermostat)
+        return humidity if humidity not in (None, 0) else None
     
     @property
     def current_temperature(self):
