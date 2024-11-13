@@ -35,7 +35,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.CLIMATE, Platform.SWITCH]
+PLATFORMS = [Platform.CLIMATE, Platform.SWITCH, Platform.SENSOR]
 
 async def async_setup(hass: HomeAssistant, config: dict):
     hass.data.setdefault(DOMAIN, {})
@@ -59,6 +59,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     def handle_set_variable(call):
         var_name = call.data.get('var_name')
         var_value = call.data.get('var_value')
+        _LOGGER.debug(f"Setting variable: {var_name} to: {var_value}")
         hass.data[DOMAIN]['state_proxy'].set_variable(var_name, var_value)
 
     hass.services.async_register(DOMAIN, "set_variable", handle_set_variable)
@@ -79,7 +80,8 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.debug("Unloading setup entry: %s, data: %s, options: %s", config_entry.entry_id, config_entry.data, config_entry.options)
-    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, [Platform.SWITCH, Platform.CLIMATE])
+    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, [Platform.SWITCH, Platform.CLIMATE, Platform.SENSOR])
+    _LOGGER.debug(f"Unload status for Uponor platforms: {unload_ok}")  
     return unload_ok
 
 class UponorStateProxy:
@@ -143,11 +145,27 @@ class UponorStateProxy:
         var = thermostat + '_maximum_setpoint'
         if var in self._data:
             return round((int(self._data[var]) - 320) / 18, 1)
-
+        
+    def has_humidity_sensor(self, thermostat):
+        var = thermostat + '_rh'
+        return var in self._data and int(self._data[var]) != 0
+    
     def get_humidity(self, thermostat):
         var = thermostat + '_rh'
         if var in self._data and int(self._data[var]) >= TOO_LOW_HUMIDITY_LIMIT:
             return int(self._data[var])
+
+    def has_floor_temperature(self, thermostat):
+        var = thermostat + '_external_temperature'
+        return var in self._data and int(self._data[var]) != 32767
+
+    def get_floor_temperature(self, thermostat):
+        var = thermostat + '_external_temperature'
+        if var in self._data:
+            temp = int(self._data[var])
+            if temp != 32767 and temp <= TOO_HIGH_TEMP_LIMIT:
+                return round((temp - 320) / 18, 1)
+        return None
 
     # Temperature setpoint
 
@@ -294,8 +312,11 @@ class UponorStateProxy:
     # Rest
     async def async_update(self,_=None):
         try:
+            _LOGGER.debug("Running  async_update to get data from Uponor thermostat.")
             self.next_sp_from_dt = dt_util.now()
             self._data = await self._hass.async_add_executor_job(lambda: self._client.get_data())
+            # For deep debug remove comment and you get the full json message.
+            # _LOGGER.debug(f"Data recieved from Uponor: {self._data}")
             self._hass.async_add_job(async_dispatcher_send, self._hass, SIGNAL_UPONOR_STATE_UPDATE)
         except Exception as ex:
             _LOGGER.error("Uponor thermostat was unable to update: %s", ex)
