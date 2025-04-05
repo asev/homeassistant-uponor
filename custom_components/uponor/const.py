@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+CONF_UNIQUE_ID = "unique_id"
+
 DOMAIN = "uponor"
 
 SIGNAL_UPONOR_STATE_UPDATE = "uponor_state_update"
@@ -23,3 +25,4 @@ STATUS_ERROR_TOO_HIGH_TEMP = 'API error'
 TOO_HIGH_TEMP_LIMIT = 4508
 TOO_LOW_HUMIDITY_LIMIT = 0
 DEFAULT_TEMP = 20
+TEMP_CELSIUS = '°C'

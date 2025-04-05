@@ -6,7 +6,8 @@
         "description": "Set up Uponor heating/cooling system",
         "data": {
           "host": "Host or IP address of the Uponor controller",
-          "name": "Name of the integration instance"
+          "name": "Name of the integration instance",
+          "unique_id": "Optional unique identifier (must be unique across entries)"
         }
       },
       "rooms": {
